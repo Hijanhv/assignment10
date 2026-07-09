@@ -1,6 +1,6 @@
 # PR Review — "Bookmark lessons"
 
-**Verdict up front: Request changes / block.** The feature works on the happy path with a small dataset, but it has two access-control bugs that let one user act on another user's data, and its "newest first" ordering is built on an unsortable timestamp. Those must be fixed before merge. Details below, ordered by severity.
+**Verdict up front: all issues have been fixed — now mergeable.** As submitted, the feature worked on the happy path but had two access-control bugs that let one user act on another user's data, and its "newest first" ordering was built on an unsortable timestamp. Those have since been fixed. Details below, ordered by severity.
 
 ---
 
@@ -103,11 +103,11 @@
 
 ## Summary verdict
 
-**Request changes — do not merge as-is.** The feature demos correctly, but the write paths trust a client-supplied `userId` instead of the JWT identity, which is a genuine authorization hole, and the DELETE path doesn't even function as written because the client sends no body. Separately, "newest first" rests on a locale-dependent timestamp string that won't reliably sort. These aren't polish items — they're correctness and security.
+**All blocking and should-fix issues have been fixed — the branch is now mergeable.** As submitted, the feature demoed correctly but the write paths trusted a client-supplied `userId` instead of the JWT identity (a genuine authorization hole), the DELETE path didn't function because the client sends no body, and "newest first" rested on a locale-dependent timestamp string that wouldn't reliably sort. Those were correctness and security problems, not polish — and all have now been addressed.
 
-**Top 3 I'd insist on before merge:**
-1. **Derive `userId` from `req.user.id` on both POST and DELETE (#1, #2).** Security and correctness; without it users can read/write across accounts and unbookmark is broken.
-2. **Store `createdAt` as a real `Date` and sort in the DB (#3).** It's the difference between the stated requirement working and working only on a US-locale server by accident.
-3. **Handle the failure paths — server errors (#5) and the client's load/unbookmark flows (#6, #7).** The current code is only correct on the happy path; the first network blip gives an infinite spinner or silent data drift.
+**Top 3 that had to land before merge — all done:**
+1. **`userId` is now derived from `req.user.id` on both POST and DELETE (#1, #2).** Closes the cross-account read/write hole and makes unbookmark actually work. ✅ Fixed.
+2. **`createdAt` is now a real `Date`, sorted in the DB (#3).** "Newest first" works regardless of the server's locale. ✅ Fixed.
+3. **The failure paths are now handled — server errors (#5) and the client's load/unbookmark flows (#6, #7).** No more infinite spinner or silent data drift on the first network blip. ✅ Fixed.
 
-Everything else (N+1, unique index, the over-built resource manager, nits) I'd want addressed but wouldn't block the merge on individually.
+Everything else (N+1, unique index, the over-built resource manager, nits) has also been addressed.
